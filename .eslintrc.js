@@ -13,6 +13,10 @@ module.exports = {
     '@typescript-eslint/no-shadow': 'error',
     'no-unused-vars': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
+    'react/function-component-definition': 'off',
+    'no-use-before-define': 'off',
+    'react/self-closing-comp': 'off',
+    'react/button-has-type': 'off',
   },
   parserOptions: {
     ecmaVersion: 2022,

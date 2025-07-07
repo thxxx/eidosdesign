@@ -1,6 +1,14 @@
+/* eslint-disable object-shorthand */
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import {
+  contextBridge,
+  ipcRenderer,
+  IpcRendererEvent,
+  desktopCapturer,
+  screen,
+} from 'electron';
+import path from 'path';
 
 export type Channels = 'ipc-example';
 
@@ -27,6 +35,11 @@ const electronHandler = {
       });
     },
   },
+  // 선택 영역 좌표를 메인에 전달
+  sendCoords: (coords) => ipcRenderer.invoke('capture-region'),
+  // 스크린샷 촬영을 위한 접근 권한 요청
+  openPerms: () => ipcRenderer.send('open-permissions'),
+  openSetup: () => ipcRenderer.invoke('open-setup'),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

@@ -17,12 +17,20 @@ import {
   ipcMain,
   screen,
   globalShortcut,
+  desktopCapturer,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 
+const { writeFile } = require('fs/promises');
+
+ipcMain.on('open-permissions', () => {
+  shell.openExternal(
+    'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording',
+  );
+});
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -33,6 +41,7 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 let overlayWindow: BrowserWindow | null = null;
+let setupWindow: BrowserWindow | null = null;
 
 ipcMain.on('ipc-example', async (event, arg) => {
   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
@@ -84,8 +93,8 @@ const startWindow = async () => {
   const { width: screenWidth, height: screenHeight } =
     screen.getPrimaryDisplay().workAreaSize;
 
-  const width = 360;
-  const height = 80;
+  const width = 420;
+  const height = 72;
 
   mainWindow = new BrowserWindow({
     width: width,
@@ -197,12 +206,12 @@ app.on('window-all-closed', () => {
   }
 });
 
-function openOverlayWindow() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+async function openOverlayWindow() {
+  const { width, height } = screen.getPrimaryDisplay().bounds;
 
   overlayWindow = new BrowserWindow({
     width: width,
-    height: height,
+    height: height - 30,
     x: 0,
     y: 0,
     frame: false,
@@ -222,6 +231,34 @@ function openOverlayWindow() {
 
   overlayWindow.on('closed', () => {
     overlayWindow = null; // 창이 닫히면 변수 초기화 -> garbage collector 유도
+  });
+}
+
+async function openSetupWindow() {
+  const { width, height } = screen.getPrimaryDisplay().bounds;
+
+  setupWindow = new BrowserWindow({
+    width: width,
+    height: height - 30,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: false,
+    focusable: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  });
+
+  setupWindow.loadURL('http://localhost:1212/index.html?setup=1');
+  setupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  setupWindow.on('closed', () => {
+    setupWindow = null; // 창이 닫히면 변수 초기화 -> garbage collector 유도
   });
 }
 
@@ -245,6 +282,12 @@ app
         }
         // mainWindow.webContents.send('shortcut-pressed'); // renderer에 이벤트 전달
       }
+      if (setupWindow) {
+        setupWindow.close();
+      }
+      if (overlayWindow) {
+        overlayWindow.close();
+      }
     });
 
     globalShortcut.register('CommandOrControl+L', () => {
@@ -255,7 +298,28 @@ app
       }
     });
 
-    // Cmd + L : 스크린샷 찍기
+    ipcMain.handle('capture-region', async (event) => {
+      const disp = screen.getPrimaryDisplay();
+      const dipW = disp.size.width;
+      const dipH = disp.size.height;
+      const sf = disp.scaleFactor;
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: {
+          width: Math.round(dipW * sf),
+          height: Math.round(dipH * sf),
+        },
+      });
+      // Buffer(PNG) 리턴
+      return {
+        buffer: sources[0].thumbnail.toPNG(),
+        base64: sources[0].thumbnail.toPNG().toString('base64'),
+      };
+    });
+
+    ipcMain.handle('open-setup', async () => {
+      openSetupWindow();
+    });
   })
   .catch(console.log);
 
