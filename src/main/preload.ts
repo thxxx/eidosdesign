@@ -36,10 +36,11 @@ const electronHandler = {
     },
   },
   // 선택 영역 좌표를 메인에 전달
-  sendCoords: (coords) => ipcRenderer.invoke('capture-region'),
+  sendCoords: (coords) => ipcRenderer.invoke('capture-region', coords),
   // 스크린샷 촬영을 위한 접근 권한 요청
   openPerms: () => ipcRenderer.send('open-permissions'),
   openSetup: () => ipcRenderer.invoke('open-setup'),
+  endRecord: () => ipcRenderer.invoke('end-record'),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

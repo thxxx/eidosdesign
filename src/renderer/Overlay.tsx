@@ -2,6 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { chatVision, END_SIGNAL } from '../lib/chat';
+import { glass } from './App';
+import logo from '../../assets/logo.svg';
+import { v4 } from 'uuid';
+import sb from '../lib/\bsupabase';
 
 // 브라우저 로깅이 확인이 어려워서 백으로 보낸다음 거기서 로깅한다.
 console.log = (st: string) => {
@@ -15,6 +19,7 @@ export default function Overlay() {
     w: number;
     h: number;
   } | null>(null);
+  const [conversationId, setConversationId] = useState<string>('');
 
   const start = useRef<{ x: number; y: number } | null>(null);
   const [isDoneSelecting, setIsDoneSelecting] = useState(false);
@@ -27,7 +32,17 @@ export default function Overlay() {
 
       content: string;
     }[]
-  >([]);
+  >([
+    {
+      type: 'user',
+      content: 'test',
+    },
+    {
+      type: 'assistant',
+      content:
+        '이 이미지는 파란색의 유리관이나 네온 튜브로 만들어진 듯한 나선형 구조와, 그 중심에 투명한 구슬(혹은 액체가 담긴 구체)이 있는 모습으로 보입니다. 전체적으로 미래적이고 디지털스러운 느낌이 강하며, 빛 반사와 색상 그라데이션이 강조되어 있습니다.형태적으로는 다음과 같이 해석할 수 있습니다: 특정 사물로 딱 떨어지게 보이진 않지만, NVIDIA의 로고와 유사한 느낌도 있습니다. 혹시 의도하신 게 있다면 알려주시면 더 자세히 설명드릴 수 있습니다!\n\n\n\n\n\n이 이미지는 파란색의 유리관이나 네온 튜브로 만들어진 듯한 나선형 구조와, 그 중심에 투명한 구슬(혹은 액체가 담긴 구체)이 있는 모습으로 보입니다. 전체적으로 미래적이고 디지털스러운 느낌이 강하며, 빛 반사와 색상 그라데이션이 강조되어 있습니다.형태적으로는 다음과 같이 해석할 수 있습니다: 특정 사물로 딱 떨어지게 보이진 않지만, NVIDIA의 로고와 유사한 느낌도 있습니다. 혹시 의도하신 게 있다면 알려주시면 더 자세히 설명드릴 수 있습니다!\n\n\n\n\n\n이 이미지는 파란색의 유리관이나 네온 튜브로 만들어진 듯한 나선형 구조와, 그 중심에 투명한 구슬(혹은 액체가 담긴 구체)이 있는 모습으로 보입니다. 전체적으로 미래적이고 디지털스러운 느낌이 강하며, 빛 반사와 색상 그라데이션이 강조되어 있습니다.형태적으로는 다음과 같이 해석할 수 있습니다: 특정 사물로 딱 떨어지게 보이진 않지만, NVIDIA의 로고와 유사한 느낌도 있습니다. 혹시 의도하신 게 있다면 알려주시면 더 자세히 설명드릴 수 있습니다!\n\n\n\n\n\n이 이미지는 파란색의 유리관이나 네온 튜브로 만들어진 듯한 나선형 구조와, 그 중심에 투명한 구슬(혹은 액체가 담긴 구체)이 있는 모습으로 보입니다. 전체적으로 미래적이고 디지털스러운 느낌이 강하며, 빛 반사와 색상 그라데이션이 강조되어 있습니다.형태적으로는 다음과 같이 해석할 수 있습니다: 특정 사물로 딱 떨어지게 보이진 않지만, NVIDIA의 로고와 유사한 느낌도 있습니다. 혹시 의도하신 게 있다면 알려주시면 더 자세히 설명드릴 수 있습니다!\n\n\n\n\n\n이 이미지는 파란색의 유리관이나 네온 튜브로 만들어진 듯한 나선형 구조와, 그 중심에 투명한 구슬(혹은 액체가 담긴 구체)이 있는 모습으로 보입니다. 전체적으로 미래적이고 디지털스러운 느낌이 강하며, 빛 반사와 색상 그라데이션이 강조되어 있습니다.형태적으로는 다음과 같이 해석할 수 있습니다: 특정 사물로 딱 떨어지게 보이진 않지만, NVIDIA의 로고와 유사한 느낌도 있습니다. 혹시 의도하신 게 있다면 알려주시면 더 자세히 설명드릴 수 있습니다!\n\n\n\n\n\n',
+    },
+  ]);
   const [area, setArea] = useState<{
     x1: number;
     y1: number;
@@ -38,15 +53,25 @@ export default function Overlay() {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [isTakingScreen, setIsTakingScreen] = useState(false);
 
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64data = (reader.result as string).split(',')[1];
+        resolve(base64data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
   const takeScreenshot = async (selected: boolean) => {
     const { buffer: pngBuffer, base64: base64String } =
       await window.electron?.sendCoords(rect);
+
     const blob = new Blob([pngBuffer], { type: 'image/png' });
 
     if (selected && rect) {
-      const dataUrl = `data:image/png;base64,${base64String}`;
-      setImageDataUrl(dataUrl);
-
       const bitmap = await createImageBitmap(blob);
 
       // 3) Canvas로 크롭
@@ -77,9 +102,14 @@ export default function Overlay() {
         // const ab = await croppedBlob.arrayBuffer();
         const url = URL.createObjectURL(croppedBlob);
         setCapturedURL(url);
+
+        // 현재는 잘린 부분만 들어가도록
+        const bs = await blobToBase64(croppedBlob);
+        const dataUrl = `data:image/png;base64,${bs}`;
+        setImageDataUrl(dataUrl);
       }, 'image/png');
     } else {
-      // 2. base64 인코딩
+      // 전체 화면 스크린샷 사용시. base64 인코딩
       const dataUrl = `data:image/png;base64,${base64String}`;
       setImageDataUrl(dataUrl);
     }
@@ -91,6 +121,7 @@ export default function Overlay() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         window.close();
+        window.electron?.endRecord();
       }
 
       window.electron?.ipcRenderer.onResetArea(() => {
@@ -124,14 +155,13 @@ export default function Overlay() {
       setRect({ x, y, w, h });
     };
 
+    // MouseUp = 영역 지정 완료
     const onMouseUp = async () => {
       setIsTakingScreen(true);
       if (rect) {
-        console.log(rect.w, rect.h);
         // 너무 작게 지정하면 취소(실수로 클릭만 했을 가능성 높음)
         if (rect.w + rect.h < 20) {
           setIsTakingScreen(false);
-
           return;
         }
 
@@ -170,8 +200,19 @@ export default function Overlay() {
 
   const tempSentence = useRef('');
 
-  const onToken = (token: string) => {
+  const onToken = async (token: string) => {
     if (token === END_SIGNAL) {
+      console.log('끝!', token);
+      const userId = localStorage.getItem('userId');
+
+      const mbody = {
+        user_id: userId,
+        type: 1,
+        content: tempSentence.current,
+        conversation_id: conversationId,
+      };
+      await sb.from('messages').insert(mbody);
+
       return;
     }
 
@@ -185,6 +226,7 @@ export default function Overlay() {
    */
   const sendText = async (input: string) => {
     if (!input) return;
+    if (input.length < 2) return;
     if (!isDoneSelecting) {
       takeScreenshot(false);
     }
@@ -217,12 +259,34 @@ export default function Overlay() {
 
     console.log(imageDataUrl?.slice(0, 30));
 
+    let cid = conversationId;
+    if (!cid) {
+      cid = v4();
+      setConversationId(cid);
+    }
+    const userId = localStorage.getItem('userId');
+
+    const cbody = {
+      id: cid,
+      user_id: userId,
+    };
+    await sb.from('conversations').insert(cbody);
+
+    const mbody = {
+      user_id: userId,
+      type: 0,
+      content: input,
+      conversation_id: cid,
+    };
+    await sb.from('messages').insert(mbody);
+
     if (imageDataUrl) {
       await chatVision(input, imageDataUrl, onToken);
     } else {
       console.log('Error!');
     }
   };
+
   return (
     <div
       style={{
@@ -231,7 +295,6 @@ export default function Overlay() {
         // backgroundColor: 'rgba(0, 0, 0, 0.1)',
         cursor: isDoneSelecting ? 'auto' : `crosshair`,
         userSelect: 'none',
-        border: '1px solid green',
       }}
     >
       {/* Display when dragging */}
@@ -290,10 +353,31 @@ export default function Overlay() {
         </DefaultActions>
       )}
 
-      <ChatBox>
-        <div>
-          <div>Chat Histories</div>
-          {capturedURL && <img src={capturedURL} width={200} alt="ew" />}
+      <ChatBox
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseMove={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
+        <div className="chat-top">
+          <div className="head">
+            <div></div>
+            <div>
+              <img src={logo} width={30} alt="logo" />
+            </div>
+            <div></div>
+          </div>
+
+          {capturedURL && (
+            <div className="screenshot-container">
+              <img
+                src={capturedURL}
+                width={120}
+                height={100}
+                alt="captuedimage"
+              />
+              {/* <div className="cancel">X</div> */}
+            </div>
+          )}
           {histories && (
             <Chattings>
               {histories.map((item) => {
@@ -307,15 +391,17 @@ export default function Overlay() {
                   return <div className="oneline user">{item.content}</div>;
                 }
               })}
+
+              {lastResponse && (
+                <div className="oneline assistant">{lastResponse}</div>
+              )}
             </Chattings>
           )}
-
-          {lastResponse && <div>{lastResponse}</div>}
         </div>
 
         <ChatSendBox>
           <textarea
-            rows={3}
+            rows={4}
             ref={textRef}
             value={text}
             onChange={(e) => setText(e.currentTarget.value)}
@@ -328,6 +414,7 @@ export default function Overlay() {
               }
             }}
           />
+          <div className="send">{'>'}</div>
         </ChatSendBox>
       </ChatBox>
     </div>
@@ -338,14 +425,57 @@ const ChatBox = styled.div`
   display: flex;
   flex-direction: column;
   position: fixed;
-  left: 0;
-  bottom: 0;
+  right: 8px;
+  bottom: 16px;
   padding: 8px;
   width: 300px;
-  background: rgba(255, 0, 0, 0.5);
+  font-family: Pretendard;
+  user-select: text;
 
-  .oneline {
-    margin: 4px 0px;
+  ${glass}
+  border-radius:4px;
+
+  .chat-top {
+    max-height: 86vh;
+    overflow: scroll;
+    padding: 2px;
+  }
+
+  .head {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 4px;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .screenshot-container {
+    display: inline-flex;
+    position: relative;
+
+    img {
+      object-fit: cover;
+
+      ${glass}
+      border-radius: 4px;
+    }
+
+    .cancel {
+      width: 16px;
+      height: 16px;
+      border-radius: 20px;
+      background: red;
+      opacity: 0.8;
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      color: white;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   }
 `;
 
@@ -354,21 +484,59 @@ const Chattings = styled.div`
   flex-direction: column;
 
   .oneline {
-    margin: 2px;
+    margin: 4px 0px;
   }
 
   .assistant {
-    background: green;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 0.85em;
+    padding: 0px 8px;
+    line-height: 1.4em;
   }
 
   .user {
-    background: blue;
+    margin-bottom: 12px;
+    ${glass}
+    border-radius:16px;
+    padding: 16px;
+    font-weight: 400;
+    font-size: 0.9em;
   }
 `;
 
 const ChatSendBox = styled.div`
+  display: flex;
+  position: relative;
+
   textarea {
+    padding: 8px;
     width: 100%;
+    margin-top: 8px;
+    font-family: Pretendard;
+
+    ${glass}
+    border-radius:4px;
+
+    &:focus {
+      outline: black;
+    }
+  }
+
+  .send {
+    display: flex;
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+
+    align-items: center;
+    justify-content: center;
+
+    ${glass};
+
+    background: #3f92db;
   }
 `;
 
@@ -379,20 +547,23 @@ const DefaultActions = styled.div`
   align-items: end;
   width: 100%;
   position: absolute;
-  gap: 1px;
+  gap: 2px;
   margin: 4px;
 
   .btn {
     display: inline-block;
-    border: 1px solid black;
-    border-radius: 4px;
     padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.8);
     cursor: pointer;
-    font-size: 1em;
+    font-size: 0.9em;
     opacity: 0;
     transform: translateY(-10px);
     animation: slideIn 0.3s forwards;
+
+    ${glass}
+
+    &:hover {
+      background: (255, 255, 255, 1);
+    }
   }
 
   .btn:nth-child(1) {

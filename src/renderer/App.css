@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Pretendard';
+  src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff')
+    format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
 /*
  * @NOTE: Prepend a `~` to css file paths that are in your node_modules
  *        See https://github.com/webpack-contrib/sass-loader#imports
@@ -9,7 +17,6 @@
 body {
   position: relative;
   /* background: rgba(0, 0, 0, 0.1); */
-  border: 1px solid red;
   font-family: sans-serif;
   overflow-y: hidden;
   display: flex;
@@ -18,7 +25,6 @@ body {
 }
 
 button {
-  background-color: white;
   padding: 6px 12px;
   border-radius: 4px;
   border: none;
@@ -58,4 +64,14 @@ a:hover {
   justify-content: center;
   align-items: center;
   margin: 20px 0;
+}
+
+.blue {
+  background: #3f92db;
+  color: white;
+}
+
+.red {
+  background: #ff3b30;
+  color: white;
 }

@@ -93,8 +93,8 @@ const startWindow = async () => {
   const { width: screenWidth, height: screenHeight } =
     screen.getPrimaryDisplay().workAreaSize;
 
-  const width = 420;
-  const height = 72;
+  const width = 560;
+  const height = 56;
 
   mainWindow = new BrowserWindow({
     width: width,
@@ -107,6 +107,7 @@ const startWindow = async () => {
     skipTaskbar: true,
     resizable: false,
     hasShadow: false,
+
     webPreferences: {
       preload: app.isPackaged // preload 스크립트는 renderer에 안전한 API를 전달하기 위한 브릿지
         ? path.join(__dirname, 'preload.js')
@@ -116,6 +117,7 @@ const startWindow = async () => {
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
   mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  // mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
@@ -256,6 +258,7 @@ async function openSetupWindow() {
 
   setupWindow.loadURL('http://localhost:1212/index.html?setup=1');
   setupWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  setupWindow.setIgnoreMouseEvents(true, { forward: true });
 
   setupWindow.on('closed', () => {
     setupWindow = null; // 창이 닫히면 변수 초기화 -> garbage collector 유도
@@ -266,18 +269,46 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
+const registerWindowMove = () => {
+  globalShortcut.register('CommandOrControl+Right', () => {
+    if (!mainWindow) return;
+
+    const [x, y] = mainWindow.getPosition();
+    mainWindow.setPosition(x + 100, y);
+  });
+
+  globalShortcut.register('CommandOrControl+Left', () => {
+    if (!mainWindow) return;
+    const [x, y] = mainWindow.getPosition();
+    mainWindow.setPosition(x - 100, y);
+  });
+};
+
 app
   .whenReady()
   .then(() => {
     startWindow();
+    registerWindowMove();
 
     // Cmd + ] : 앱을 열었다 닫았다
     globalShortcut.register('CommandOrControl+]', () => {
       if (mainWindow) {
         if (mainWindow.isVisible()) {
-          mainWindow.hide();
+          mainWindow.webContents.send('animate-out');
+          mainWindow.webContents.send('end-record');
+
+          setTimeout(() => {
+            mainWindow.hide();
+          }, 100); // 애니메이션이 시작된 후 show (선택적)
+
+          globalShortcut.unregister('CommandOrControl+Right');
+          globalShortcut.unregister('CommandOrControl+Left');
         } else {
-          mainWindow.show();
+          mainWindow.webContents.send('animate-in');
+          registerWindowMove();
+          setTimeout(() => {
+            mainWindow.show();
+          }, 100); // 애니메이션이 시작된 후 show (선택적)
           // mainWindow.focus();
         }
         // mainWindow.webContents.send('shortcut-pressed'); // renderer에 이벤트 전달
@@ -292,17 +323,27 @@ app
 
     globalShortcut.register('CommandOrControl+L', () => {
       console.log('영역 지정');
-      if (overlayWindow === null) openOverlayWindow();
+      if (overlayWindow === null) {
+        openOverlayWindow();
+        if (mainWindow) mainWindow.webContents.send('start-record');
+      }
       if (overlayWindow !== null) {
         overlayWindow.webContents.send('reset-area');
       }
     });
 
-    ipcMain.handle('capture-region', async (event) => {
+    ipcMain.handle('end-record', async (_event) => {
+      if (mainWindow) mainWindow.webContents.send('end-record');
+    });
+
+    ipcMain.handle('capture-region', async (_event, coords) => {
+      console.log('coords', coords);
+
       const disp = screen.getPrimaryDisplay();
       const dipW = disp.size.width;
       const dipH = disp.size.height;
       const sf = disp.scaleFactor;
+
       const sources = await desktopCapturer.getSources({
         types: ['screen'],
         thumbnailSize: {

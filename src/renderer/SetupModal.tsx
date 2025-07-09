@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import sb from '../lib/\bsupabase';
+import { glass } from './App';
 
 enum SetOptions {
   CONTEXT = 'context',
@@ -80,58 +81,83 @@ const SetupModal = () => {
   return (
     <SetupOuter>
       <SetupContainer>
-        <div className="topbar">
-          <div>Set Context</div>
-          <div onClick={() => window.close()}>X</div>
-        </div>
-        <div className="mid">
-          <div className="left-cont">
-            <div
-              className="option"
-              onClick={() => setSelected(SetOptions.CONTEXT)}
-            >
-              Context
-            </div>
-            <div
-              className="option"
-              onClick={() => setSelected(SetOptions.PERSONA)}
-            >
-              Persona
-            </div>
-            <div
-              className="option"
-              onClick={() => setSelected(SetOptions.REFERENCE)}
-            >
-              Reference
-            </div>
+        <div className="left-cont">
+          <div className="cancel">
+            <button onClick={() => window.close()}>Cancel</button>
           </div>
-          <div className="right-cont">
-            {selected === SetOptions.CONTEXT && (
-              <div>
-                <textarea
-                  rows={5}
-                  placeholder="context"
-                  value={tempContext}
-                  onChange={(e) => setTempContext(e.currentTarget.value)}
-                />
-              </div>
-            )}
-            {selected === SetOptions.PERSONA && (
-              <div>
-                <textarea
-                  rows={5}
-                  placeholder="persona"
-                  value={tempPersona}
-                  onChange={(e) => setTempPersona(e.currentTarget.value)}
-                />
-              </div>
-            )}
-            {selected === SetOptions.REFERENCE && <div></div>}
+          <div
+            className="option"
+            onClick={() => setSelected(SetOptions.CONTEXT)}
+          >
+            Context
+          </div>
+          <div
+            className="option"
+            onClick={() => setSelected(SetOptions.REFERENCE)}
+          >
+            Reference
           </div>
         </div>
-        <div className="bottom">
-          <button onClick={() => window.close()}>Cancel</button>
-          <button onClick={() => onSave()}>Confirm</button>
+        <div className="right-cont">
+          <div className="topbar">
+            <p>Set Context</p>
+            <button className="blue" onClick={() => onSave()}>
+              Confirm
+            </button>
+          </div>
+          {selected === SetOptions.CONTEXT && (
+            <div className="form">
+              <p>What's your role?</p>
+              <textarea
+                rows={1}
+                placeholder="context"
+                value={tempContext}
+                onChange={(e) => setTempContext(e.currentTarget.value)}
+              />
+              <p>What is this project about?</p>
+              <textarea
+                rows={1}
+                placeholder="context"
+                value={tempContext}
+                onChange={(e) => setTempContext(e.currentTarget.value)}
+              />
+              <p>Who is your target persona?</p>
+              <textarea
+                rows={3}
+                className="rows"
+                placeholder="context"
+                value={tempContext}
+                onChange={(e) => setTempContext(e.currentTarget.value)}
+              />
+              <p>What's your design concept and principles?</p>
+              <textarea
+                rows={3}
+                placeholder="context"
+                className="rows"
+                value={tempContext}
+                onChange={(e) => setTempContext(e.currentTarget.value)}
+              />
+              <p>How would you like feedback delivered?</p>
+              <textarea
+                rows={3}
+                placeholder="context"
+                className="rows"
+                value={tempContext}
+                onChange={(e) => setTempContext(e.currentTarget.value)}
+              />
+            </div>
+          )}
+          {selected === SetOptions.PERSONA && (
+            <div>
+              <textarea
+                rows={1}
+                placeholder="persona"
+                value={tempPersona}
+                onChange={(e) => setTempPersona(e.currentTarget.value)}
+              />
+            </div>
+          )}
+          {selected === SetOptions.REFERENCE && <div></div>}
         </div>
       </SetupContainer>
     </SetupOuter>
@@ -143,7 +169,7 @@ export default React.memo(SetupModal);
 const SetupOuter = styled.div`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: end;
   position: fixed;
   inset: 0;
   backgroundcolor: rgba(255, 0, 0, 0.4);
@@ -151,61 +177,99 @@ const SetupOuter = styled.div`
 `;
 
 const SetupContainer = styled.div`
-  width: 400px;
-  height: 300px;
-  background: white;
-  border-radius: 12px;
+  width: 580px;
+  height: 580px;
+  max-height: 80vh;
   padding: 8px;
-  border: 1px solid gray;
+  ${glass}
+  border-radius: 8px;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.8);
 
-  .topbar {
+  .left-cont {
+    width: 25%;
     display: flex;
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-between;
-    height: 10%;
+    flex-direction: column;
+    ${glass}
+    border-radius:8px;
+    padding: 8px;
+    gap: 4px;
+
+    .cancel {
+      margin-bottom: 12px;
+    }
+
+    .option {
+      cursor: pointer;
+      ${glass}
+      background: rgba(255,255,255,0.0);
+      padding: 8px 12px;
+      font-size: 0.9em;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+    }
   }
 
-  .mid {
-    height: 80%;
-    width: 100%;
-    background: gray;
+  .right-cont {
+    width: 75%;
     display: flex;
-    flex-direction: row;
-    gap: 8px;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
 
-    .left-cont {
-      width: 30%;
+    .topbar {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      height: 10%;
+
+      p {
+        font-size: 1.1em;
+        font-weight: 700;
+        margin: 0px;
+      }
+
+      button {
+        ${glass}
+        background: #3f92db;
+        font-size: 0.9em;
+        padding: 8px 16px;
+      }
+    }
+
+    .form {
+      width: 100%;
       display: flex;
       flex-direction: column;
+      font-family: Pretendard;
+      padding-top: 8px;
 
-      .option {
-        cursor: pointer;
-        border-radius: 8px;
-        padding: 6px 8px;
+      p {
+        margin: 0px;
+        font-size: 0.9em;
+        font-weight: 600;
+      }
+      textarea {
+        margin-bottom: 18px;
+        margin-top: 12px;
+        font-family: Pretendard;
+        width: 90%;
+        ${glass}
+        align-items:center;
+        display: flex;
+        resize: none;
+        padding: 8px 12px;
+      }
 
-        &:hover {
-          background: rgba(0, 0, 0, 0.1);
-        }
+      .rows {
+        border-radius: 16px;
       }
     }
-    .right-cont {
-      width: 70%;
-
-      div {
-        width: 100%;
-        textarea {
-          width: 90%;
-        }
-      }
-    }
-  }
-
-  .bottom {
-    height: 10%;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: end;
   }
 `;
